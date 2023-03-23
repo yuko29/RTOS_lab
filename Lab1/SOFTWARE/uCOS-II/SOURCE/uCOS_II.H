@@ -404,7 +404,9 @@ typedef struct os_tcb {
     INT8U          OSTCBY;             /* Index into ready table corresponding to task priority        */
     INT8U          OSTCBBitX;          /* Bit mask to access bit position in ready table               */
     INT8U          OSTCBBitY;          /* Bit mask to access bit position in ready group               */
-
+    
+    INT16U         compTime;           /* Execution counter*/
+    INT16U         period;             /* The period of the task */
 #if OS_TASK_DEL_EN > 0
     BOOLEAN        OSTCBDelReq;        /* Indicates whether a task needs to delete itself              */
 #endif
@@ -1146,3 +1148,7 @@ void          OSTickISR(void);
 #ifndef OS_SCHED_LOCK_EN
 #error  "OS_CFG.H, Missing OS_SCHED_LOCK_EN: Include code for OSSchedLock() and OSSchedUnlock()"
 #endif
+
+#define CTXSW_MSG_BUF_SIZE 20
+extern char CtxSwMsgBuf[CTXSW_MSG_BUF_SIZE][50];
+extern int CtxSwMsgCursor;

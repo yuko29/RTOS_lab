@@ -185,6 +185,9 @@ void  OSIntExit (void)
             OSIntExitY    = OSUnMapTbl[OSRdyGrp];          /* ... and not locked.                      */
             OSPrioHighRdy = (INT8U)((OSIntExitY << 3) + OSUnMapTbl[OSRdyTbl[OSIntExitY]]);
             if (OSPrioHighRdy != OSPrioCur) {              /* No Ctx Sw if current task is highest rdy */
+                if(CtxSwMsgCursor < CTXSW_MSG_BUF_SIZE)
+                    sprintf(&CtxSwMsgBuf[CtxSwMsgCursor++],"%5d\t %s\t %2d\t %2d\n",(int)OSTime, "Preempt ", (int)OSPrioCur, (int)OSPrioHighRdy);
+
                 OSTCBHighRdy  = OSTCBPrioTbl[OSPrioHighRdy];
                 OSCtxSwCtr++;                              /* Keep track of the number of ctx switches */
                 OSIntCtxSw();                              /* Perform interrupt level ctx switch       */
@@ -367,7 +370,11 @@ void  OSTimeTick (void)
     OS_CPU_SR  cpu_sr;
 #endif    
     OS_TCB    *ptcb;
+    
 
+    OS_ENTER_CRITICAL();
+    OSTCBCur->compTime--;                                  /* Decrement the exection counter of current running TCB */
+    OS_EXIT_CRITICAL();
 
     OSTimeTickHook();                                      /* Call user definable hook                 */
 #if OS_TIME_GET_SET_EN > 0   
@@ -879,6 +886,8 @@ void  OS_Sched (void)
         y             = OSUnMapTbl[OSRdyGrp];          /* Get pointer to HPT ready to run              */
         OSPrioHighRdy = (INT8U)((y << 3) + OSUnMapTbl[OSRdyTbl[y]]);
         if (OSPrioHighRdy != OSPrioCur) {              /* No Ctx Sw if current task is highest rdy     */
+            if(CtxSwMsgCursor < CTXSW_MSG_BUF_SIZE)
+                sprintf(&CtxSwMsgBuf[CtxSwMsgCursor++],"%5d\t %s\t %2d\t %2d\n",(int)OSTime, "Complete", (int)OSPrioCur, (int)OSPrioHighRdy);
             OSTCBHighRdy = OSTCBPrioTbl[OSPrioHighRdy];
             OSCtxSwCtr++;                              /* Increment context switch counter             */
             OS_TASK_SW();                              /* Perform a context switch                     */
