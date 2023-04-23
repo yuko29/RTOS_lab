@@ -1,0 +1,3 @@
+#!/usr/bin/bash
+cp -r SOFTWARE/uCOS-II/Lab2/ Lab2/SOFTWARE/uCOS-II/
+cp -r SOFTWARE/uCOS-II/SOURCE/ Lab2/SOFTWARE/uCOS-II/
