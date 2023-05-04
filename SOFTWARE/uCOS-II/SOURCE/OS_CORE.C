@@ -298,7 +298,7 @@ void  OSStart (void)
     INT8U y;
     INT8U x;
 
-
+    OSTimeSet(0);
     if (OSRunning == FALSE) {
         y             = OSUnMapTbl[OSRdyGrp];        /* Find highest priority's task priority number   */
         x             = OSUnMapTbl[OSRdyTbl[y]];

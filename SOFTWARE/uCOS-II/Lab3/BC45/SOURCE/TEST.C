@@ -68,6 +68,9 @@ int CtxSwMsgCursor = 0;
 int PrintCursor = 0;
 TASK_INFO TaskInfoBuf[NUM_TASK];
 
+OS_EVENT *R1;
+OS_EVENT *R2;
+
 /*
 *********************************************************************************************************
 *                                         FUNCTION PROTOTYPES
@@ -96,11 +99,11 @@ void PrintTasksInfo();
 
 void main(void)
 {
-    PC_DispClrScr(DISP_BGND_BLACK); /* Clear the screen                         */
-    
+    INT8U err1;
+    INT8U err2;
+
     OSInit(); /* Initialize uC/OS-II                      */
-    OSTCBPrioTbl[OS_IDLE_PRIO]->deadline = 1002;
-    
+
     PC_DOSSaveReturn(); /* Save environment to return to DOS        */
 
     PC_VectSet(uCOS, OSCtxSw); /* Install uC/OS-II's context switch vector */
@@ -113,6 +116,8 @@ void main(void)
 #else if TEST_SET_ID == 2
     TaskStartCreateTaskSet2();
 #endif
+    R1 = OSMutexCreate(1, &err1);
+    R2 = OSMutexCreate(2, &err1);
     OSStart(); /* Start multitasking                       */
 }
 
@@ -133,20 +138,18 @@ void main(void)
 
 //     pdata = pdata; /* Prevent compiler warning                 */
 
-//     // TaskStartDispInit(); /* Setup the display                        */
 //     OS_ENTER_CRITICAL(); /* Install uC/OS-II's clock tick ISR        */
 //     PC_VectSet(0x08, OSTickISR);
 //     PC_SetTickRate(OS_TICKS_PER_SEC); /* Reprogram tick rate                      */
-//     // OSTCBCur->deadline = TASKSTART_DEADLINE;
-    
+
 //     OS_EXIT_CRITICAL();
-//     // OSStatInit(); /* Initialize uC/OS-II's statistics         */
 
-//     // MsgQueue = OSQCreate(&MsgQueueTbl[0], MSG_QUEUE_SIZE); /* Create a message queue                   */
-
-
+// #if TEST_SET_ID == 1
+//     TaskStartCreateTaskSet1();
+// #else if TEST_SET_ID == 2
+//     TaskStartCreateTaskSet2();
+// #endif
 //     OSTimeSet(0);
-//     OSTimeDly(MAX_EXECTIME - 1);
 
 //     for (;;)
 //     {
@@ -161,8 +164,8 @@ void main(void)
 //             }
 //         }
 
-//         // OSCtxSwCtr = 0;              /* Clear the context switch counter         */
-//         // OSTimeDly(MAX_EXECTIME);
+//         OSCtxSwCtr = 0;                                    /* Clear context switch counter             */
+//         OSTimeDlyHMSM(0, 0, 1, 0);                         /* Wait one second                          */
 //     }
 // }
 /*$PAGE*/
@@ -174,47 +177,33 @@ void main(void)
 
 void TaskStartCreateTaskSet1(void)
 {
-    TaskInfoBuf[1].compTime = 1;
-    TaskInfoBuf[1].period = 3;
-    TaskInfoBuf[2].compTime = 3;
-    TaskInfoBuf[2].period = 5;
     OSTaskCreate(Task1,
-                 (void *)&TaskInfoBuf[1],
+                 (void *)0,
                  &TaskStk[0][TASK_STK_SIZE - 1],
-                 (INT8U)(1));
+                 (INT8U)(3));
 
     OSTaskCreate(Task2,
-                 (void *)&TaskInfoBuf[2],
+                 (void *)0,
                  &TaskStk[1][TASK_STK_SIZE - 1],
-                 (INT8U)(2));
+                 (INT8U)(4));
 
-    TaskArgumentSetting(TaskInfoBuf);
+    OSTaskCreate(Task3,
+                 (void *)0,
+                 &TaskStk[2][TASK_STK_SIZE - 1],
+                 (INT8U)(5));
 }
 
 void TaskStartCreateTaskSet2(void)
 {
-    TaskInfoBuf[1].compTime = 1;
-    TaskInfoBuf[1].period = 4;
-    TaskInfoBuf[2].compTime = 2;
-    TaskInfoBuf[2].period = 5;
-    TaskInfoBuf[3].compTime = 2;
-    TaskInfoBuf[3].period = 10;
     OSTaskCreate(Task1,
-                 (void *)&TaskInfoBuf[1],
+                 (void *)0,
                  &TaskStk[0][TASK_STK_SIZE - 1],
-                 (INT8U)(1));
-
-    OSTaskCreate(Task2,
-                 (void *)&TaskInfoBuf[2],
-                 &TaskStk[1][TASK_STK_SIZE - 1],
-                 (INT8U)(2));
-
-    OSTaskCreate(Task3,
-                 (void *)&TaskInfoBuf[3],
-                 &TaskStk[2][TASK_STK_SIZE - 1],
                  (INT8U)(3));
 
-    TaskArgumentSetting(TaskInfoBuf);
+    OSTaskCreate(Task2,
+                 (void *)0,
+                 &TaskStk[1][TASK_STK_SIZE - 1],
+                 (INT8U)(4));
 }
 /*$PAGE*/
 
@@ -225,26 +214,28 @@ void TaskStartCreateTaskSet2(void)
 *********************************************************************************************************
 */
 
+#if TEST_SET_ID == 1
+
 void Task1(void *pdata)
 {
+
     char *msg;
-    INT8U err;
     INT16S key;
 
     int start;
-    int end;
-    int toDelay;
+    int todelay;
+    INT8U err;
 
-    TASK_INFO *taskInfo = (TASK_INFO *)pdata;
-
+    // TASK_INFO *taskInfo = (TASK_INFO *)pdata;
     OS_ENTER_CRITICAL();
-    PC_VectSet(0x08, OSTickISR);                           /* Install uC/OS-II's clock tick ISR        */
-    PC_SetTickRate(1u);                      /* Reprogram tick rate                      */
+    PC_VectSet(0x08, OSTickISR); /* Install uC/OS-II's clock tick ISR        */
+    PC_SetTickRate(1u);          /* Reprogram tick rate                      */
     OS_EXIT_CRITICAL();
 
-    start = 0;
-
-    // printf("Task running: %d\n", OSTCBCur->OSTCBPrio);
+    start = 8;
+    todelay = start - OSTime;
+    if (todelay > 0)
+        OSTimeDly(todelay);
 
     for (;;)
     {
@@ -256,125 +247,138 @@ void Task1(void *pdata)
             }
         }
         printCtxSwMessage();
-        while (OSTCBCur->compTime > 0)
-        {
-            /* Computing */
-        }
+
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPend(R1, 0, &err);   // Lock R1
         
-        // printf("Task complete: %d\n", OSTCBCur->OSTCBPrio);
+
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPend(R2, 0, &err);   // Lock R2
+
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R2);            // Unlock R2
+        OSMutexPost(R1);            // Unlock R1
         
-        OS_ENTER_CRITICAL();
-        end = OSTimeGet();
-        toDelay = (OSTCBCur->period) - (end - start);
-        start = start + (OSTCBCur->period);      // Next start time
-        OSTCBCur->compTime = taskInfo->compTime; // Reset the counter
-        OSTCBCur->deadline = start + OSTCBCur->period;
-        OS_EXIT_CRITICAL();
-        // printf("------In Task------\n");
-        // printf("Tick: %d, Task prio: %d, start: %d, end: %d, compTime: %d, toDelay: %d\n",
-        //        OSTimeGet(), OSTCBCur->OSTCBPrio, start - (OSTCBCur->period), end, OSTCBCur->compTime, toDelay);
-        if(toDelay < 0) {
-            if (CtxSwMsgCursor < CTXSW_MSG_BUF_SIZE)
-                sprintf(&CtxSwMsgBuf[CtxSwMsgCursor++], "Tick: %d: Task1 over deadline.", OSTimeGet());
-        }
-        else {
-            OSTimeDly(toDelay);
-        }  
+        OSTimeDly(100);
     }
 }
 
 void Task2(void *pdata)
 {
-    char *msg;
-    INT8U err;
-    INT16S key;
-
     int start;
-    int end;
-    int toDelay;
+    int todelay;
+    INT8U err;
 
-    TASK_INFO *taskInfo = (TASK_INFO *)pdata;
+    // // TASK_INFO *taskInfo = (TASK_INFO *)pdata;
 
-    start = 0;
-
-    // printf("Task running: %d\n", OSTCBCur->OSTCBPrio);
-
+    start = 4;
+    todelay = start - OSTime;
+    if(todelay > 0) 
+        OSTimeDly(todelay);
+    
     for (;;)
     {
-        while (OSTCBCur->compTime > 0)
-        {
-            /* Computing */
-        }
+        OSTCBCur->compTime = 2;
+        while(OSTCBCur->compTime > 0);
+        OSMutexPend(R2,0,&err);
         
-        // printf("Task complete: %d\n", OSTCBCur->OSTCBPrio);
-        
-        OS_ENTER_CRITICAL();
-        end = OSTimeGet();
-        toDelay = (OSTCBCur->period) - (end - start);
-        start = start + (OSTCBCur->period);      // Next start time
-        OSTCBCur->compTime = taskInfo->compTime; // Reset the counter
-        OSTCBCur->deadline = start + OSTCBCur->period;
-        OS_EXIT_CRITICAL();
-        // printf("------In Task------\n");
-        // printf("Tick: %d, Task prio: %d, start: %d, end: %d, compTime: %d, toDelay: %d\n",
-        //        OSTimeGet(), OSTCBCur->OSTCBPrio, start - (OSTCBCur->period), end, OSTCBCur->compTime, toDelay);
-        if(toDelay < 0) {
-            if (CtxSwMsgCursor < CTXSW_MSG_BUF_SIZE)
-                sprintf(&CtxSwMsgBuf[CtxSwMsgCursor++], "Tick: %d: Task2 over deadline.", OSTimeGet());
-        }
-        else {
-            OSTimeDly(toDelay);
-        }  
+        OSTCBCur->compTime = 4;
+        while(OSTCBCur->compTime > 0);
+        OSMutexPost(R2);
+       
+       OSTimeDly(100);
     }
+
+    // OSTaskDel(OS_PRIO_SELF);
 }
 
 void Task3(void *pdata)
 {
-    char *msg;
-    INT8U err;
-    INT16S key;
-
     int start;
-    int end;
-    int toDelay;
+    int todelay;
+    INT8U err;
 
-    TASK_INFO *taskInfo = (TASK_INFO *)pdata;
+    // // TASK_INFO *taskInfo = (TASK_INFO *)pdata;
 
     start = 0;
-
-    // printf("Task running: %d\n", OSTCBCur->OSTCBPrio);
+    todelay = start - OSTime;
+    if(todelay > 0) OSTimeDly(todelay);
 
     for (;;)
     {
-        while (OSTCBCur->compTime > 0)
-        {
-            /* Computing */
-        }
+        OSTCBCur->compTime = 2;
+        while(OSTCBCur->compTime > 0);
+        OSMutexPend(R1,0,&err);
+
+        OSTCBCur->compTime = 7;
+        while(OSTCBCur->compTime > 0);
+        OSMutexPost(R1);
         
-        // printf("Task complete: %d\n", OSTCBCur->OSTCBPrio);
-        
-        OS_ENTER_CRITICAL();
-        end = OSTimeGet();
-        toDelay = (OSTCBCur->period) - (end - start);
-        start = start + (OSTCBCur->period);      // Next start time
-        OSTCBCur->compTime = taskInfo->compTime; // Reset the counter
-        OSTCBCur->deadline = start + OSTCBCur->period;
-        OS_EXIT_CRITICAL();
-        // printf("------In Task------\n");
-        // printf("Tick: %d, Task prio: %d, start: %d, end: %d, compTime: %d, toDelay: %d\n",
-        //        OSTimeGet(), OSTCBCur->OSTCBPrio, start - (OSTCBCur->period), end, OSTCBCur->compTime, toDelay);
-        if(toDelay < 0) {
-            if (CtxSwMsgCursor < CTXSW_MSG_BUF_SIZE)
-                sprintf(&CtxSwMsgBuf[CtxSwMsgCursor++], "Tick: %d: Task3 over deadline.", OSTimeGet());
+        OSTimeDly(100);
+
+    }
+
+    // OSTaskDel(OS_PRIO_SELF);
+}
+
+#else if TEST_SET_ID == 2
+
+void Task1(void *pdata)
+{
+    char *msg;
+    INT16S key;
+
+    int start;
+    int todelay;
+    INT8U err;
+
+    // TASK_INFO *taskInfo = (TASK_INFO *)pdata;
+    OS_ENTER_CRITICAL();
+    PC_VectSet(0x08, OSTickISR); /* Install uC/OS-II's clock tick ISR        */
+    PC_SetTickRate(1u);          /* Reprogram tick rate                      */
+    OS_EXIT_CRITICAL();
+
+    start = 5;
+    todelay = start - OSTime;
+    if (todelay > 0)
+        OSTimeDly(todelay);
+
+    for (;;)
+    {
+        if (PC_GetKey(&key))
+        { /* See if key has been pressed              */
+            if (key == 0x1B)
+            {                   /* Yes, see if it's the ESCAPE key          */
+                PC_DOSReturn(); /* Yes, return to DOS                       */
+            }
         }
-        else {
-            OSTimeDly(toDelay);
-        }  
+        printCtxSwMessage();
+
+        OSTCBCur->compTime = 2;
+        OSMutexPend(R1, 0, &err);
+        while (OSTCBCur->compTime > 0);
+        
+
+        OSTCBCur->compTime = 2;
+
+        OSMutexPend(R2, 0, &err);
+        while (OSTCBCur->compTime > 0);
+        
+        OSMutexPost(R2);
+        OSMutexPost(R1);
+        
+        OSTimeDly(100);
     }
 }
 
+void Task2(void *pdata)
+{
 
-
+}
+#endif
 
 void printCtxSwMessage()
 {
@@ -384,8 +388,10 @@ void printCtxSwMessage()
     for (; PrintCursor < CtxSwMsgCursor; PrintCursor++)
         printf("%s", CtxSwMsgBuf[PrintCursor]);
 
-    if (PrintCursor > CTXSW_MSG_BUF_SIZE) {
-        while (1);
+    if (PrintCursor > CTXSW_MSG_BUF_SIZE)
+    {
+        while (1)
+            ;
     }
 }
 
