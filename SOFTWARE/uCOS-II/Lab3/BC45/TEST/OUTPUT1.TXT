@@ -5,6 +5,7 @@
     9	 Complete	  5	  3
    11 lock R1   (Prio=3 changes to=1)
    13 lock R2   (Prio=1 changes to=1)
+   15 unlock R2   (Prio=1 changes to=1)
    15 unlock R1   (Prio=1 changes to=3)
    15	 Complete	  3	  4
    17 lock R2   (Prio=4 changes to=2)
@@ -17,4 +18,3 @@
   118	 Complete	  5	  3
   120 lock R1   (Prio=3 changes to=1)
   122 lock R2   (Prio=1 changes to=1)
-  124 unlock R1   (Prio=1 changes to=3)
