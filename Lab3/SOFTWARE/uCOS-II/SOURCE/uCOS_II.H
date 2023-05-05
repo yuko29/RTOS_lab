@@ -407,6 +407,7 @@ typedef struct os_tcb {
     
     INT16U         compTime;           /* Execution counter*/
     INT16U         period;             /* The period of the task */
+    INT16U         deadline;           /* The deadline of the task*/
 #if OS_TASK_DEL_EN > 0
     BOOLEAN        OSTCBDelReq;        /* Indicates whether a task needs to delete itself              */
 #endif
@@ -1152,3 +1153,7 @@ void          OSTickISR(void);
 #define CTXSW_MSG_BUF_SIZE 20
 extern char CtxSwMsgBuf[CTXSW_MSG_BUF_SIZE][50];
 extern int CtxSwMsgCursor;
+extern int PrintCursor;
+
+#define MAX_EXECTIME 30
+#define TASKSTART_DEADLINE 29 
