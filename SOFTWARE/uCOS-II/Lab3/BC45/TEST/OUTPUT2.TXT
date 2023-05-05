@@ -1,20 +1,20 @@
-    0	 Preempt 	  0	  1
-    1	 Complete	  1	  2
-    3	 Complete	  2	  3
-    4	 Preempt 	  3	  1
-    5	 Complete	  1	  3
-    6	 Complete	  3	  2
-    8	 Complete	  2	  1
-    9	 Complete	  1	 63
-   10	 Preempt 	 63	  2
-   12	 Complete	  2	  1
-   13	 Complete	  1	  3
-   15	 Complete	  3	  2
-   17	 Complete	  2	  1
-   18	 Complete	  1	 63
-   20	 Preempt 	 63	  1
-   21	 Complete	  1	  2
-   23	 Complete	  2	  3
-   24	 Preempt 	  3	  1
-   25	 Complete	  1	  3
-   26	 Complete	  3	  2
+    0	 Complete	  3	  4
+    2 lock R1   (Prio=4 changes to=1)
+    8 lock R2   (Prio=1 changes to=1)
+   10 unlock R2   (Prio=1 changes to=1)
+   12 unlock R1   (Prio=1 changes to=4)
+   12	 Complete	  4	  3
+   14 lock R2   (Prio=3 changes to=2)
+   17 lock R1   (Prio=2 changes to=1)
+   20 unlock R1   (Prio=1 changes to=2)
+   23 unlock R2   (Prio=2 changes to=3)
+   23	 Complete	  3	 62
+   23	 Complete	 62	 63
+  112	 Preempt 	 63	  4
+  114 lock R1   (Prio=4 changes to=1)
+  120 lock R2   (Prio=1 changes to=1)
+  122 unlock R2   (Prio=1 changes to=1)
+  124 unlock R1   (Prio=1 changes to=4)
+  124	 Complete	  4	  3
+  126 lock R2   (Prio=3 changes to=2)
+  129 lock R1   (Prio=2 changes to=1)

@@ -30,7 +30,7 @@
 
 #define NUM_TASK 5
 
-#define TEST_SET_ID 1
+#define TEST_SET_ID 2
 /*
 *********************************************************************************************************
 *                                             DATA TYPES
@@ -174,7 +174,7 @@ void main(void)
 *                                      CREATE APPLICATION TASKS
 *********************************************************************************************************
 */
-
+#if TEST_SET_ID == 1
 void TaskStartCreateTaskSet1(void)
 {
     OSTaskCreate(Task1,
@@ -192,7 +192,7 @@ void TaskStartCreateTaskSet1(void)
                  &TaskStk[2][TASK_STK_SIZE - 1],
                  (INT8U)(5));
 }
-
+#else if TEST_SET_ID == 2
 void TaskStartCreateTaskSet2(void)
 {
     OSTaskCreate(Task1,
@@ -205,6 +205,7 @@ void TaskStartCreateTaskSet2(void)
                  &TaskStk[1][TASK_STK_SIZE - 1],
                  (INT8U)(4));
 }
+#endif
 /*$PAGE*/
 
 /*$PAGE*/
@@ -358,17 +359,21 @@ void Task1(void *pdata)
         printCtxSwMessage();
 
         OSTCBCur->compTime = 2;
-        OSMutexPend(R1, 0, &err);
         while (OSTCBCur->compTime > 0);
+        OSMutexPend(R2, 0, &err);       // Lock R2
         
 
-        OSTCBCur->compTime = 2;
-
-        OSMutexPend(R2, 0, &err);
+        OSTCBCur->compTime = 3;
         while (OSTCBCur->compTime > 0);
-        
-        OSMutexPost(R2);
-        OSMutexPost(R1);
+        OSMutexPend(R1, 0, &err);       // Lock R1
+
+        OSTCBCur->compTime = 3;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R1);                // Unlock R1
+
+        OSTCBCur->compTime = 3;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R2);                // Unlock R2
         
         OSTimeDly(100);
     }
@@ -376,6 +381,36 @@ void Task1(void *pdata)
 
 void Task2(void *pdata)
 {
+    int start;
+    int todelay;
+    INT8U err;
+
+    start = 0;
+    todelay = start - OSTime;
+    if (todelay > 0)
+        OSTimeDly(todelay);
+
+    for (;;)
+    {
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPend(R1, 0, &err);       // Lock R1
+        
+
+        OSTCBCur->compTime = 6;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPend(R2, 0, &err);       // Lock R2
+
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R2);                // Unlock R2
+
+        OSTCBCur->compTime = 2;
+        while (OSTCBCur->compTime > 0);
+        OSMutexPost(R1);                // Unlock R1
+
+        OSTimeDly(100);
+    }
 
 }
 #endif
